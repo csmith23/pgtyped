@@ -3,7 +3,7 @@ import { processSQLQueryIR } from './preprocessor-sql.js';
 import { processTSQueryAST } from './preprocessor-ts.js';
 
 export interface IDatabaseConnection {
-  query: (query: string, bindings: any[]) => Promise<{ rows: any[] }>;
+  query: (query: string, bindings: any[]) => Promise<{ rows: any[], rowCount: number | null }>;
 }
 
 /** Check for column modifier suffixes (exclamation and question marks). */
@@ -30,7 +30,7 @@ export class TaggedQuery<TTypePair extends { params: any; result: any }> {
   public run: (
     params: TTypePair['params'],
     dbConnection: IDatabaseConnection,
-  ) => Promise<Array<TTypePair['result']>>;
+  ) => Promise<[Array<TTypePair['result']>, number | null]>;
 
   private readonly query: TSQueryAST;
 
@@ -42,7 +42,7 @@ export class TaggedQuery<TTypePair extends { params: any; result: any }> {
         params as any,
       );
       const result = await connection.query(processedQuery, bindings);
-      return mapQueryResultRows(result.rows);
+      return [mapQueryResultRows(result.rows), result.rowCount];
     };
   }
 }
@@ -64,7 +64,7 @@ export class PreparedQuery<TParamType, TResultType> {
   public run: (
     params: TParamType,
     dbConnection: IDatabaseConnection,
-  ) => Promise<Array<TResultType>>;
+  ) => Promise<[Array<TResultType>, number | null]>;
 
   private readonly queryIR: SQLQueryIR;
 
@@ -76,7 +76,7 @@ export class PreparedQuery<TParamType, TResultType> {
         params as any,
       );
       const result = await connection.query(processedQuery, bindings);
-      return mapQueryResultRows(result.rows);
+      return [mapQueryResultRows(result.rows), result.rowCount];
     };
   }
 }
